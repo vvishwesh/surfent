@@ -170,6 +170,9 @@
             {
                 calcStart();
                 var mol_txt = document.getElementById("textareamol").value;
+                if (mol_txt.length == 0) {
+                    return;
+                }
 
                 var generatedMol = Kekule.IO.loadFormatData(mol_txt, "mol");
                 molviewer.setChemObj(generatedMol);
@@ -213,7 +216,7 @@
                 var mol = getCurrMol();
                 if (mol == null)
                 {
-                    reportMessage('Enter some data a**-hole!', 'danger')
+                    //reportMessage('Enter some data a**-hole!', 'danger')
                     return;
                 }
                 else 
