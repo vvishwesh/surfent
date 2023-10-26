@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Gas Phase Entropy</title>
+        <meta http-equiv="content-type" content="text/html;charset=utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+        <link rel="shortcut icon" href="#">
+
+        <script src="scripts/Three.js"></script>
+        <!-- <script src="scripts/raphael-min.2.0.1.js"></script> -->
+        <script type="text/javascript" language="javascript" src="jsme/jsme.nocache.js"></script>
+        <script src="kekule/kekule.js?modules=calculation,chemWidget,openbabel,indigo"></script>
+        <script src="kekule/extra/openbabel.js"></script>
+        <script type="text/javascript" src="o3dv/o3dv.min.js"></script>
+        <script src="scripts/gensurfmc33.js"></script>
+        <script type="module" src="scripts/main.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="kekule/themes/default/kekule.css" />
+
+        <style>
+            /* Remove the jumbotron's default bottom margin */
+            .jumbotron {
+                margin-bottom: 0;
+                height:auto;
+                padding:1px 0 !important;
+            }
+            
+            /* Add a gray background color and some padding to the footer */
+            footer {
+                background-color: #f2f2f2;
+                padding: 25px;
+            }
+            #state
+            {
+                height: 2em;
+                line-height: 2;
+                font-weight: bold;
+            }
+            #description
+            {
+                clear: both;
+                padding: 1em;
+            }
+            #chemViewer
+            {
+                width: 800px;
+                height: 500px;
+                float: left;
+            }
+            div.online_3d_viewer
+            {
+                float: left;
+                border: 1px solid #eeeeee;
+                width: 300px;
+                height: 300px;
+            }
+        </style>
+        <script>
+
+            var molviewer, OpenBabel;  
+            var calculator, timeStart, timeEnd;
+            let surfaceviewer;
+
+            function reportMessage(message, type)
+            {
+                const alertPlaceholder = document.getElementById('liveAlertPlaceholder')
+                const wrapper = document.createElement('div')
+                        wrapper.innerHTML = [
+                            `<div class="alert alert-${type}" role="alert">`,
+                            `   <div>${message}</div>`,
+                            '</div>'
+                          ].join('')
+
+                alertPlaceholder.append(wrapper);                
+            }
+
+            async function entfunc(mdata) {
+                await globalThis.webR.objs.globalEnv.bind('pdata', mdata);
+                let str = await globalThis.webR.evalR('calculate_gas_phase_entropy(pdata)');
+                console.log((await str.toJs()).values);
+                document.getElementById("entropy_display").innerHTML = (await str.toJs()).values;
+                globalThis.webR.destroy(str);
+            }
+
+            function jsmeOnLoad()
+            {
+                jsmeApplet = new JSApplet.JSME("jsme_container", "480px", "380px", {"options" : "newlook, nostar, noreaction, noquery, noxbutton, norbutton, noatommovebutton, nopaste, useopenchemlib, nozoom"});
+                document.JME = jsmeApplet;
+            }
+
+            function getCurrMol()
+            {
+                var mol_smiles = document.JME.smiles();
+                if (mol_smiles.length > 0)
+                {
+                    var mol = Kekule.IO.loadFormatData(mol_smiles, "smi");
+                    return mol;
+                }
+                else
+                    return null;
+            }
+        
+            function calcStart()
+            {
+                timeStart = Date.now();
+            }
+
+                        
+            function calcEnd()
+            {
+                timeEnd = Date.now();
+            }
+
+
+            function displaySurface(res_off)
+            {
+                // display surface
+                const dataBlob = new Blob([res_off], {type: 'text/plain'});
+                const dataFile = new File([dataBlob], 'foo.off');
+                surfaceviewer.LoadModelFromFileList([dataFile]);
+            }
+
+
+            function mol2pqr(mol_data)
+            {
+                var conv = new OpenBabel.ObConversionWrapper();  // create ObConversionWrapper instance
+                var pqr_fmt;
+                try
+                {
+                    conv.setInFormat('', 'mol');  // set input format by file extension
+                    // the input format can also be set by MIME type:                            
+                    var mol = new OpenBabel.OBMol();  // create a new molecule object...
+                    conv.readString(mol, mol_data);  // ... and load it with input data
+                    conv.setOutFormat('', 'pqr');  // set out format by file extension
+                    pqr_fmt = conv.writeString(mol, false);  // get output data, do not trim white spaces
+                    console.log(pqr_fmt);
+                                                
+                }
+                finally
+                {
+                    conv.delete();  // free ObConversionWrapper instance
+                }
+                return pqr_fmt;
+            }
+
+            function pqr2mol(mol_data)
+            {
+                var conv = new OpenBabel.ObConversionWrapper();  // create ObConversionWrapper instance
+                var mol_fmt;
+                try
+                {
+                    conv.setInFormat('', 'pqr');  // set input format by file extension
+                    // the input format can also be set by MIME type:                            
+                    var mol = new OpenBabel.OBMol();  // create a new molecule object...
+                    conv.readString(mol, mol_data);  // ... and load it with input data
+                    conv.setOutFormat('', 'mol');  // set out format by file extension
+                    mol_fmt = conv.writeString(mol, false);  // get output data, do not trim white spaces
+                    console.log(mol_fmt);                                                
+                }
+                finally
+                {
+                    conv.delete();  // free ObConversionWrapper instance
+                }
+                return mol_fmt;
+            }
+
+            function handlePQR()
+            {
+                calcStart();
+                var mol_txt = document.getElementById("textareamol").value;
+
+                var generatedMol = Kekule.IO.loadFormatData(mol_txt, "mol");
+                molviewer.setChemObj(generatedMol);
+                generatedMol = null;
+
+                var pqr_data = mol2pqr(mol_txt);
+                console.log(pqr_data)
+                
+                // generate surface
+                Module.tesselate_surface(pqr_data);
+                var res_off = Module.export_off();
+                var res_srf = Module.report_face_data();
+                Module.cleanup();
+                pqr_data = null;
+                
+                // display the surface
+                if (res_off)
+                {
+                    displaySurface(res_off); 
+                    res_off = null;
+                }
+                
+
+                // the troublesome entropy calculation
+                if (res_srf)
+                {
+                    entfunc(res_srf).then(result => console.log(result));
+                    res_srf = null;
+                }
+                
+
+                calcEnd();
+                var elapse = (timeEnd - timeStart) / 1000;
+
+                console.log('Calculation done in ' + elapse + ' sec');
+
+            }
+
+            function handleSMILES()
+            {
+                var mol = getCurrMol();
+                if (mol == null)
+                {
+                    reportMessage('Enter some data a**-hole!', 'danger')
+                    return;
+                }
+                else 
+                {
+                    console.log('Calculating...');
+                    calcStart();
+                    calculator = Kekule.Calculator.generate3D(mol, {'forceField': ''},
+                        function(generatedMol){
+                            
+                            // make this async func
+                            var mol_data = Kekule.IO.saveFormatData(generatedMol, 'mol'); 
+                            //console.log(mol_data);
+                            molviewer.setChemObj(generatedMol);
+                     
+                            var pqr_data = mol2pqr(mol_data);
+                            console.log(pqr_data)
+
+                            // generate surface
+                            Module.tesselate_surface(pqr_data);
+                            var res_off = Module.export_off();
+                            var res_srf = Module.report_face_data();
+                            Module.cleanup();
+                            pqr_data = null;
+                            
+                            // display the surface
+                            if (res_off)
+                            {
+                                displaySurface(res_off); 
+                                res_off = null;
+                            }
+                            
+
+                            // the troublesome entropy calculation
+                            if (res_srf)
+                            {
+                                entfunc(res_srf).then(result => console.log(result));
+                                res_srf = null;
+                            }
+
+                            calcEnd();
+                            var elapse = (timeEnd - timeStart) / 1000;
+
+                            console.log('Calculation done in ' + elapse + ' sec');
+                        },
+                        function(err)
+                        {
+                            if (err)
+                            {
+                                calcEnd();
+                                console.log(err.getMessage? err.getMessage(): err);
+                                Kekule.error(err);                  
+                            }
+                        }
+                    );
+                }
+            }
+
+
+
+            function init()
+            {
+                Kekule.Indigo.enable();
+                molviewer = Kekule.Widget.getWidgetById('chemViewer');
+                OpenBabel = OpenBabelModule();
+                let parentDiv = document.getElementById ('surfaceviewer');
+                surfaceviewer = new OV.EmbeddedViewer (parentDiv, {
+                    backgroundColor : new OV.RGBAColor (255, 255, 255, 255),
+                    defaultColor : new OV.RGBColor (200, 200, 200),
+                    edgeSettings : new OV.EdgeSettings (false, new OV.RGBColor (0, 0, 0), 1),
+                });
+            }
+    
+            Kekule.X.domReady(init);
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="jumbotron">
+                <div class="text-center">
+                    <h1 class="display-4">Gas Phase Entropy Prediction</h1>
+                    <p class="lead">Moving beyond Boltzmann-Gibb's formulation: Entropy from Molecular Surface Properties</p>
+                    <hr class="my-4">                
+                </div>
+            </div>
+            <p class="h5 text-justify">Calculating accurate entropy for a molecule can take thousands of CPU hours using molecular dynamics with molecular mechanics approximation (approximating the quantum mechanical interactions with a classical mechanical model. Here, we estimate molecular entropy using the area law (increase in the thermodynamic entropy of the molecule should be proportional to the increase in its area) and to this end use a molecular surface shape based approach to calculate gas phase entropy.</p>
+        </div>
+        <div class="container">
+            <div class="align-self-center" id="liveAlertPlaceholder"></div>
+
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="panel panel-primary">
+                        <div class="panel-body">
+                            <div class="panel-body" id="jsme_container"></div>
+                            <div class="col-xs-1 text-center">
+                                <button type="button" class="btn btn-primary" onclick='handleSMILES();'>Predict</button>
+                            </div>    
+                        </div>
+                        <div class="panel-footer">Draw a structure and press <em>Predict</em></div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="panel panel-primary">
+                        <div class="panel-body">
+                            <textarea class="md-textarea" id="textareamol" rows="20" cols="70"></textarea><br>
+                            <div class="col-xs-1 text-center">
+                                <button type="button" class="btn btn-primary" onclick='handlePQR()';>Predict</button>
+                            </div>
+                        </div>
+                        <div class="panel-footer">Paste the 3D structure of a molecule in .sdf format and press <em>Predict</em></div>
+                    </div>
+                </div>                
+            </div>
+        </div>
+        <br>
+        
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="panel panel-primary">
+                        <div class="panel-body">
+                            <div id="chemViewer" style="display:block; width:300px; height:300px;" data-widget="Kekule.ChemWidget.Viewer3D" data-predefined-setting="basic" data-enable-toolbar="false" data-auto-size="false"></div>
+                        </div>
+                        <div class="panel-footer">3D Structure</div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="panel panel-primary">
+                        <div class="panel-body">
+                            <div class="online_3d_viewer" id="surfaceviewer"></div>
+                        </div>
+                        <div class="panel-footer">Molecular Surface</div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="panel panel-primary">
+                        <div class="panel-body">
+                            <div id="entropy_display" class="col"></div>
+                        </div>
+                        <div class="panel-footer">Calculated Entropy (J/mol &centerdot; K)</div>
+                    </div>
+                </div>
+            </div>
+        </div><br><br>
+        <footer class="container-fluid text-center">
+            <p>Should you encounter issues with the calculation, please contact Vishwesh Venkatraman or Amitava Roy.</p>
+        </footer>
+    </body>
+</html>
+
