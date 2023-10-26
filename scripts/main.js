@@ -10,7 +10,7 @@ console.log("Initializing WebR…")
 await globalThis.webR.init();
 console.log("WebR Initialized!")
 
-let xfunc = await fetch('/scripts/rfuncs.R');
+let xfunc = await fetch('scripts/rfuncs.R');
 await globalThis.webR.evalR(await xfunc.text());
 
 console.timeEnd('Execution Time');
