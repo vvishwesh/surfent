@@ -95,7 +95,7 @@ calculate_gas_phase_entropy <- function(pdata) {
 
     rm(res_p, res_n, la_p, pa_p, la_n, pa_n)
 
-    x = c(101.809, 2.032308, -19.94338, 2.082685)
+    x = c(97.27084, 2.061531, 18.17766, -1.802935)
 
     tdata = as.matrix(cbind(pos_ent, neg_ent))
     gvals = tdata %*% x[c(3,4)]
