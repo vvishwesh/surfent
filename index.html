@@ -15,7 +15,7 @@
         <script src="kekule/extra/openbabel.js"></script>
         <script type="text/javascript" src="o3dv/o3dv.min.js"></script>
         <script src="scripts/gensurfmc33.js"></script>
-        <script type="module" src="scripts/main.js"></script>
+        <script type="module" src="scripts/main.js"></script> 
 
         <link rel="stylesheet" type="text/css" href="kekule/themes/default/kekule.css" />
 
@@ -76,13 +76,15 @@
                 alertPlaceholder.append(wrapper);                
             }
 
+            ///*
             async function entfunc(mdata) {
                 await globalThis.webR.objs.globalEnv.bind('pdata', mdata);
                 let str = await globalThis.webR.evalR('calculate_gas_phase_entropy(pdata)');
-                console.log((await str.toJs()).values);
+                //console.log((await str.toJs()).values);
                 document.getElementById("entropy_display").innerHTML = (await str.toJs()).values;
                 globalThis.webR.destroy(str);
             }
+            //*/
 
             function jsmeOnLoad()
             {
@@ -114,10 +116,10 @@
             }
 
 
-            function displaySurface(res_off)
+            function displaySurface(offdata)
             {
                 // display surface
-                const dataBlob = new Blob([res_off], {type: 'text/plain'});
+                const dataBlob = new Blob([offdata], {type: 'text/plain'});
                 const dataFile = new File([dataBlob], 'foo.off');
                 surfaceviewer.LoadModelFromFileList([dataFile]);
             }
@@ -179,12 +181,15 @@
                 generatedMol = null;
 
                 var pqr_data = mol2pqr(mol_txt);
-                console.log(pqr_data)
+                //console.log(pqr_data)
                 
                 // generate surface
                 Module.tesselate_surface(pqr_data);
-                var res_off = Module.export_off();
-                var res_srf = Module.report_face_data();
+                var res_off = Module.export_off(document.getElementById("cbcheck_v2").checked);
+                var entval = Module.calculate_entropy();
+                document.getElementById("entropy_display").innerHTML = entval;
+                //var res_srf = Module.report_face_data();
+                //console.log(res_srf);
                 Module.cleanup();
                 pqr_data = null;
                 
@@ -195,14 +200,14 @@
                     res_off = null;
                 }
                 
-
+                /*
                 // the troublesome entropy calculation
                 if (res_srf)
                 {
                     entfunc(res_srf).then(result => console.log(result));
-                    res_srf = null;
+                    //res_srf = null;
                 }
-                
+                */
 
                 calcEnd();
                 var elapse = (timeEnd - timeStart) / 1000;
@@ -232,11 +237,14 @@
                             molviewer.setChemObj(generatedMol);
                      
                             var pqr_data = mol2pqr(mol_data);
-                            console.log(pqr_data)
+                            //console.log(pqr_data)
 
                             // generate surface
                             Module.tesselate_surface(pqr_data);
-                            var res_off = Module.export_off();
+                            var res_off = Module.export_off(document.getElementById("cbcheck_v1").checked);
+                            var entval = Module.calculate_entropy();
+                            console.log(entval);
+                            //document.getElementById("entropy_display").innerHTML = entval;
                             var res_srf = Module.report_face_data();
                             Module.cleanup();
                             pqr_data = null;
@@ -248,13 +256,15 @@
                                 res_off = null;
                             }
                             
-
+                            ///*
                             // the troublesome entropy calculation
                             if (res_srf)
                             {
+                                console.log("Before R call to entropy.")
                                 entfunc(res_srf).then(result => console.log(result));
-                                res_srf = null;
+                                //res_srf = null;
                             }
+                            //*/
 
                             calcEnd();
                             var elapse = (timeEnd - timeStart) / 1000;
@@ -311,9 +321,16 @@
                     <div class="panel panel-primary">
                         <div class="panel-body">
                             <div class="panel-body" id="jsme_container"></div>
-                            <div class="col-xs-1 text-center">
+                            <div class="col-md-2 text-center">
                                 <button type="button" class="btn btn-primary" onclick='handleSMILES();'>Predict</button>
-                            </div>    
+                            </div>
+                            <div class="checkbox col-md-6 text-center">
+                                <input type="checkbox" value="" id="cbcheck_v1">
+                                <span class="label label-default">
+                                    Use colorblind colors
+                                </span>
+                            </div>
+
                         </div>
                         <div class="panel-footer">Draw a structure and press <em>Predict</em></div>
                     </div>
@@ -322,8 +339,14 @@
                     <div class="panel panel-primary">
                         <div class="panel-body">
                             <textarea class="md-textarea" id="textareamol" rows="20" cols="70"></textarea><br>
-                            <div class="col-xs-1 text-center">
+                            <div class="col-md-2 text-center">
                                 <button type="button" class="btn btn-primary" onclick='handlePQR()';>Predict</button>
+                            </div>
+                            <div class="checkbox col-md-6 text-center">
+                                <input type="checkbox" value="" id="cbcheck_v2">
+                                <span class="label label-default">
+                                    Use colorblind colors
+                                </span>
                             </div>
                         </div>
                         <div class="panel-footer">Paste the 3D structure of a molecule in .sdf format and press <em>Predict</em></div>
@@ -366,4 +389,3 @@
         </footer>
     </body>
 </html>
-

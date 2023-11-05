@@ -11,25 +11,32 @@ get_probabilities <- function(prop, numBins=64) {
     C = 1 - f1/n            # estimated coverage
     pa = C*p                # coverage adjusted empirical frequencies
     la = (1-(1-pa)^n)       # probability to see a bin (species) in the sample
-    
     b = b[idx]
+
+    #cat("C: ", C, "f1: ", f1, "n: ", n, "\n")
+
     res <- list(probs_adj = pa, probs_bin = la, breaks = b)
     res
 }
 
 calculate_gas_phase_entropy <- function(pdata) {
-    df <- read.csv(text = pdata, header=F);
+    df <- read.csv(text=pdata, header=F);
     colnames(df) <- c("Area", "SHPIDX")
     nbins = 64
 
     SHPIDX = df$SHPIDX
     Area <- df$Area
-    idx_na = which(is.na(SHPIDX))
-    if (length(idx_na) > 0) {
-        SHPIDX <- SHPIDX[-idx_na]
-        Area <- Area[-idx_na]
+    idx = which(is.finite(SHPIDX))
+    if (length(idx) > 0) {
+        SHPIDX <- SHPIDX[idx]
+        Area <- Area[idx]
     }
-    rm(idx_na, df)
+    else {
+        return ("Entropy calculation failed.")
+    }
+
+    rm(idx, df)
+
 
     shpidx_n <- NULL
     shpidx_p <- NULL
@@ -49,7 +56,6 @@ calculate_gas_phase_entropy <- function(pdata) {
         pa_p = res_p$probs_adj
     }
 
-
     # negative contrib
     idx <- which(SHPIDX < 0)
     if (length(idx) > 1) {
@@ -58,7 +64,6 @@ calculate_gas_phase_entropy <- function(pdata) {
         la_n = res_n$probs_bin
         pa_n = res_n$probs_adj
     }
-
     rm(shpidx_p, shpidx_n, idx)
 
     ntri = length(Area)
@@ -70,8 +75,8 @@ calculate_gas_phase_entropy <- function(pdata) {
         
         sival = SHPIDX[j]
 
-        if ((sival >= 0) & (sival < 1)) {
-            interval_c = findInterval(sival, res_p$breaks)
+        if ((sival < 0.99) & (sival >= 0)) {
+            interval_c = findInterval(sival, res_p$breaks, rightmost.closed = TRUE, left.open = TRUE)
             val = 0
             bval = as.double(la_p[interval_c])
             pval = as.double(pa_p[interval_c])
@@ -81,7 +86,7 @@ calculate_gas_phase_entropy <- function(pdata) {
             }
             pos_ent[j] = -1 * val
         } else if (sival < 0) {
-            interval_c = findInterval(sival, res_n$breaks)
+            interval_c = findInterval(sival, res_n$breaks, rightmost.closed = TRUE, left.open = TRUE)
             val = 0
             bval = as.double(la_n[interval_c])
             pval = as.double(pa_n[interval_c])
@@ -95,7 +100,7 @@ calculate_gas_phase_entropy <- function(pdata) {
 
     rm(res_p, res_n, la_p, pa_p, la_n, pa_n)
 
-    x = c(92.18026, 2.083398, 17.94925, -1.935789)
+    x = c(104.3459, 3.077742, 6.907248, 21.45908)
 
     tdata = as.matrix(cbind(pos_ent, neg_ent))
     gvals = tdata %*% x[c(3,4)]
