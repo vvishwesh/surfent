@@ -15,7 +15,7 @@
         <script src="kekule/extra/openbabel.js"></script>
         <script type="text/javascript" src="o3dv/o3dv.min.js"></script>
         <script src="scripts/gensurfmc33.js"></script>
-        <script type="module" src="scripts/main.js"></script> 
+        <!-- <script type="module" src="scripts/main.js"></script> --> 
 
         <link rel="stylesheet" type="text/css" href="kekule/themes/default/kekule.css" />
 
@@ -76,7 +76,7 @@
                 alertPlaceholder.append(wrapper);                
             }
 
-            ///*
+            /*
             async function entfunc(mdata) {
                 await globalThis.webR.objs.globalEnv.bind('pdata', mdata);
                 let str = await globalThis.webR.evalR('calculate_gas_phase_entropy(pdata)');
@@ -84,7 +84,7 @@
                 document.getElementById("entropy_display").innerHTML = (await str.toJs()).values;
                 globalThis.webR.destroy(str);
             }
-            //*/
+            */
 
             function jsmeOnLoad()
             {
@@ -189,7 +189,6 @@
                 var entval = Module.calculate_entropy();
                 document.getElementById("entropy_display").innerHTML = entval;
                 //var res_srf = Module.report_face_data();
-                //console.log(res_srf);
                 Module.cleanup();
                 pqr_data = null;
                 
@@ -243,9 +242,9 @@
                             Module.tesselate_surface(pqr_data);
                             var res_off = Module.export_off(document.getElementById("cbcheck_v1").checked);
                             var entval = Module.calculate_entropy();
-                            console.log(entval);
+                            //console.log(entval);
                             //document.getElementById("entropy_display").innerHTML = entval;
-                            var res_srf = Module.report_face_data();
+                            //var res_srf = Module.report_face_data();
                             Module.cleanup();
                             pqr_data = null;
                             
@@ -256,7 +255,7 @@
                                 res_off = null;
                             }
                             
-                            ///*
+                            /*
                             // the troublesome entropy calculation
                             if (res_srf)
                             {
@@ -264,7 +263,7 @@
                                 entfunc(res_srf).then(result => console.log(result));
                                 //res_srf = null;
                             }
-                            //*/
+                            */
 
                             calcEnd();
                             var elapse = (timeEnd - timeStart) / 1000;
