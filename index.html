@@ -137,8 +137,7 @@
                     conv.readString(mol, mol_data);  // ... and load it with input data
                     conv.setOutFormat('', 'pqr');  // set out format by file extension
                     pqr_fmt = conv.writeString(mol, false);  // get output data, do not trim white spaces
-                    console.log(pqr_fmt);
-                                                
+                    //console.log(pqr_fmt);                                                
                 }
                 finally
                 {
@@ -159,7 +158,7 @@
                     conv.readString(mol, mol_data);  // ... and load it with input data
                     conv.setOutFormat('', 'mol');  // set out format by file extension
                     mol_fmt = conv.writeString(mol, false);  // get output data, do not trim white spaces
-                    console.log(mol_fmt);                                                
+                    //console.log(mol_fmt);                                                
                 }
                 finally
                 {
