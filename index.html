@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>Gas Phase Entropy</title>        
+        <title>Gas Phase Entropy</title>
         <meta name="viewport" content="width=device-width, user-scalable=no">
         <meta http-equiv='cache-control' content='no-cache'> 
         <meta http-equiv='expires' content='0'> 
@@ -58,7 +58,7 @@
                 border: 1px solid #eeeeee;
                 width: 300px;
                 height: 300px;
-            }
+            }            
         </style>
         <script>
 
@@ -189,7 +189,8 @@
                 Module.tesselate_surface(pqr_data);
                 var res_off = Module.export_off(document.getElementById("cbcheck_v2").checked);
                 var entval = Module.calculate_entropy();
-                document.getElementById("entropy_display").innerHTML = entval;
+                //console.log(entval);
+                document.getElementById("entropy_display").innerHTML = parseFloat(entval);
                 //var res_srf = Module.report_face_data();
                 Module.cleanup();
                 pqr_data = null;
@@ -245,7 +246,7 @@
                             var res_off = Module.export_off(document.getElementById("cbcheck_v1").checked);
                             var entval = Module.calculate_entropy();
                             //console.log(entval);
-                            document.getElementById("entropy_display").innerHTML = entval;
+                            document.getElementById("entropy_display").innerHTML = parseFloat(entval); // required for firefox
                             //var res_srf = Module.report_face_data();
                             Module.cleanup();
                             pqr_data = null;
@@ -339,7 +340,7 @@
                 <div class="col-sm-6">
                     <div class="panel panel-primary">
                         <div class="panel-body">
-                            <textarea class="md-textarea" id="textareamol" rows="20" cols="70"></textarea><br>
+                            <textarea class="md-textarea" id="textareamol" rows="20" cols="64"></textarea><br>
                             <div class="col-md-2 text-center">
                                 <button type="button" class="btn btn-primary" onclick='handlePQR()';>Predict</button>
                             </div>
