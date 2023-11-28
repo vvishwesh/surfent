@@ -11,15 +11,16 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
         <link rel="shortcut icon" href="#">
-        <script src="scripts/Three.js"></script>
+        <!-- <script src="scripts/Three.js"></script> -->
         <!-- <script src="scripts/raphael-min.2.0.1.js"></script> -->
         <script type="text/javascript" language="javascript" src="jsme/jsme.nocache.js"></script>
         <script src="kekule/kekule.js?modules=calculation,chemWidget,openbabel,indigo"></script>
         <script src="kekule/extra/openbabel.js"></script>
-        <script type="text/javascript" src="o3dv/o3dv.min.js"></script>
+        <!-- <script type="text/javascript" src="o3dv/o3dv.min.js"></script> -->
         <script src="scripts/gensurfmc33.js"></script>
         <!-- <script type="module" src="scripts/main.js"></script> --> 
-
+        <script type='text/javascript' src='scripts/x3dom.js'> </script>
+        <link rel='stylesheet' type='text/css' href='scripts/x3dom.css'/>
         <link rel="stylesheet" type="text/css" href="kekule/themes/default/kekule.css" />
 
         <style>
@@ -47,19 +48,28 @@
                 padding: 1em;
             }
             
+            div.x3d-content 
+            {
+                width:450px; 
+                height:337px; 
+                border:border: 1px solid #eeeeee; 
+            }
+            /*
             div.online_3d_viewer
             {
                 float: left;
                 border: 1px solid #eeeeee;
                 width: 325px;
                 height: 300px;
-            }            
+            }
+            */     
         </style>
         <script>
 
-            var molviewer, OpenBabel;  
+            var OpenBabel;  
             var calculator, timeStart, timeEnd;
-            let surfaceviewer;
+            var res_x3d = "";
+            //var molviewer, surfaceviewer;
 
             function reportMessage(message, type)
             {
@@ -113,13 +123,66 @@
                 timeEnd = Date.now();
             }
 
-
+            /*
             function displaySurface(offdata)
             {
                 // display surface
                 const dataBlob = new Blob([offdata], {type: 'text/plain'});
                 const dataFile = new File([dataBlob], 'foo.off');
                 surfaceviewer.LoadModelFromFileList([dataFile]);
+            }
+            */
+
+            function displaySurface(srfdata)
+            {
+                // display surface
+                const dataBlob = new Blob([srfdata], {type: 'text/plain'});
+                const dataFile = new File([dataBlob], 'foo.x3d');
+                var inline = document.getElementById("inline");
+                var url = URL.createObjectURL(dataFile);
+                inline.setAttribute("url", url);                
+            }
+
+            function changeTransparency()
+            {
+                var e = document.getElementById("seltrans");
+                var value = e.options[e.selectedIndex].value;
+                console.log(value);
+
+                if (res_x3d)
+                {
+                    let position = res_x3d.search("Material transparency=");
+                    console.log(position);
+                    // update to new transparency 
+                    
+                    var res = res_x3d.substring(0, position + 22) + "\"" + value + "\"" + res_x3d.substring(position + 27, res_x3d.length);
+                    res_x3d = res;
+                    displaySurface(res_x3d);
+                    res = null;
+                    //console.log(res);
+                }
+            }
+
+            function changeTransparencySlider()
+            {
+                var x = document.getElementById("seltransrange");
+                var defaultVal = x.defaultValue;
+                var currentVal = x.value;
+                if (defaultVal != currentVal)
+                {
+                    if (res_x3d)
+                    {
+                        let position = res_x3d.search("Material transparency=");
+                        console.log(position);
+                        // update to new transparency 
+                    
+                        var res = res_x3d.substring(0, position + 22) + "\"" + currentVal + "\"" + res_x3d.substring(position + 27, res_x3d.length);
+                        res_x3d = res;
+                        displaySurface(res_x3d);
+                        res = null;
+                        //console.log(res);
+                    }   
+                }
             }
 
 
@@ -167,22 +230,27 @@
 
             function handlePQR()
             {
+                jsmeApplet.reset();
+                document.getElementById("seltrans").options[4].selected = 'selected';
+                res_x3d = "";
+
                 calcStart();
                 var mol_txt = document.getElementById("textareamol").value;
                 if (mol_txt.length == 0) {
                     return;
                 }
 
-                var generatedMol = Kekule.IO.loadFormatData(mol_txt, "mol");
-                molviewer.setChemObj(generatedMol);
-                generatedMol = null;
+                //var generatedMol = Kekule.IO.loadFormatData(mol_txt, "mol");
+                //molviewer.setChemObj(generatedMol);
+                //generatedMol = null;
 
                 var pqr_data = mol2pqr(mol_txt);
                 //console.log(pqr_data)
                 
                 // generate surface
                 Module.tesselate_surface(pqr_data);
-                var res_off = Module.export_off(document.getElementById("cbcheck_v2").checked);
+                //var res_off = Module.export_off(document.getElementById("cbcheck_v2").checked);
+                res_x3d = Module.export_x3d(document.getElementById("cbcheck_v2").checked);
                 var entval = Module.calculate_entropy();
                 //console.log(entval);
                 document.getElementById("entropy_display").innerHTML = parseFloat(entval);
@@ -191,10 +259,17 @@
                 pqr_data = null;
                 
                 // display the surface
+                /*
                 if (res_off)
                 {
                     displaySurface(res_off); 
                     res_off = null;
+                }
+                */
+
+                if (res_x3d.length > 0)
+                {
+                    displaySurface(res_x3d); 
                 }
                 
                 /*
@@ -215,6 +290,11 @@
 
             function handleSMILES()
             {
+                // reset textarea
+                document.getElementById("textareamol").value = "";
+                document.getElementById("seltrans").options[4].selected = 'selected';
+                res_x3d = "";
+
                 var mol = getCurrMol();
                 if (mol == null)
                 {
@@ -225,20 +305,22 @@
                 {
                     console.log('Calculating...');
                     calcStart();
+
                     calculator = Kekule.Calculator.generate3D(mol, {'forceField': ''},
                         function(generatedMol){
                             
                             // make this async func
                             var mol_data = Kekule.IO.saveFormatData(generatedMol, 'mol'); 
                             //console.log(mol_data);
-                            molviewer.setChemObj(generatedMol);
+                            //molviewer.setChemObj(generatedMol);
                      
                             var pqr_data = mol2pqr(mol_data);
                             //console.log(pqr_data)
 
                             // generate surface
                             Module.tesselate_surface(pqr_data);
-                            var res_off = Module.export_off(document.getElementById("cbcheck_v1").checked);
+                            //var res_off = Module.export_off(document.getElementById("cbcheck_v1").checked);
+                            res_x3d = Module.export_x3d(document.getElementById("cbcheck_v1").checked);
                             var entval = Module.calculate_entropy();
                             //console.log(entval);
                             document.getElementById("entropy_display").innerHTML = parseFloat(entval); // required for firefox
@@ -247,10 +329,16 @@
                             pqr_data = null;
                             
                             // display the surface
+                            /*
                             if (res_off)
                             {
                                 displaySurface(res_off); 
                                 res_off = null;
+                            }
+                            */
+                            if (res_x3d.length > 0)
+                            {
+                                displaySurface(res_x3d);
                             }
                             
                             /*
@@ -286,14 +374,16 @@
             function init()
             {
                 Kekule.Indigo.enable();
-                molviewer = Kekule.Widget.getWidgetById('chemViewer');
+                //molviewer = Kekule.Widget.getWidgetById('chemViewer');
                 OpenBabel = OpenBabelModule();
+                /*
                 let parentDiv = document.getElementById ('surfaceviewer');
                 surfaceviewer = new OV.EmbeddedViewer (parentDiv, {
                     backgroundColor : new OV.RGBAColor (255, 255, 255, 255),
                     defaultColor : new OV.RGBColor (200, 200, 200),
                     edgeSettings : new OV.EdgeSettings (false, new OV.RGBColor (0, 0, 0), 1),
                 });
+                */
             }
     
             Kekule.X.domReady(init);
@@ -355,7 +445,7 @@
         
         <div class="container">
             <div class="row">
-                <div class="col-sm-4">
+                <!-- <div class="col-sm-4">
                     <div class="panel panel-primary">
                         <div class="panel-body">
                             <div id="chemViewer" style="display:block; width:325px; height:300px;" data-widget="Kekule.ChemWidget.Viewer3D" data-predefined-setting="basic" data-enable-toolbar="false" data-auto-size="false"></div>
@@ -370,13 +460,55 @@
                         </div>
                         <div class="panel-footer">Molecular Surface</div>
                     </div>
-                </div>
-                <div class="col-sm-4">
+                </div> -->
+                <div class="col-sm-8">
                     <div class="panel panel-primary">
                         <div class="panel-body">
-                            <div id="entropy_display" class="col"></div>
+                            <x3d>
+                                <scene id="scene">
+                                    <Inline id="inline" nameSpaceName="Inline" mapDEFToID="true" url="" contentType="model/x3d+xml"></Inline>
+                                </scene>
+                            </x3d>
                         </div>
-                        <div class="panel-footer">Calculated Entropy (J/mol &centerdot; K)</div>
+                        <div class="panel-footer">Molecular Surface</div>
+                    </div>
+                </div>                
+                <div class="col-sm-4">
+                    <div class="row">
+                        <div class="panel panel-primary">
+                            <div class="panel-body">
+                                <div id="entropy_display" class="col"></div>
+                            </div>
+                            <div class="panel-footer">Calculated Entropy (J/mol &centerdot; K)</div>
+                        </div>
+                        <div class="panel panel-primary">
+                            <div class="panel-body">
+                                <div class="control-group">                             
+                                    <div class="controls">
+                                        <label for="seltrans" class="form-label">Current transparency</label>
+                                        <select class="select2" id="seltrans" style="width:100px;" onchange="changeTransparency()">
+                                            <option value="0.0">0.00</option>
+                                            <option value="0.1">0.10</option>
+                                            <option value="0.2">0.20</option>
+                                            <option value="0.3">0.30</option>
+                                            <option value="0.4" selected>0.40</option>
+                                            <option value="0.5">0.50</option>
+                                            <option value="0.6">0.60</option>
+                                            <option value="0.7">0.70</option>
+                                            <option value="0.8">0.80</option>
+                                            <option value="0.9">0.90</option>
+                                            <option value="1.0">1.00</option>
+                                        </select>
+                                        <!--
+                                        <label for="seltransrange" class="form-label">Set transparency</label>
+                                        <span id="rangeval">0.4</span>
+                                        <input type="range" class="form-range" min="0" max="1" step="0.1" value="0.4" id="seltransrange" onInput="$('#rangeval').html($(this).val()); changeTransparencySlider();">
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-footer">Change surface transparency</div>
+                        </div>
                     </div>
                 </div>
             </div>
